@@ -15,9 +15,15 @@ scipy>=1.10.0
 openai>=1.30.0
 python-dotenv>=1.0.0
 
-# UI
-streamlit>=1.30.0
+# UI (mobile-first: NiceGUI native bottom-nav)
+nicegui>=3.14.0
 plotly>=5.18.0
+
+# Streamlit kept for v1 fallback / reference
+streamlit>=1.30.0
+
+# Crypto exchange (Binance testnet -- weekend-friendly live market feed)
+python-binance>=1.0.37
 
 # News feed (Stage 2)
 feedparser>=6.0.0

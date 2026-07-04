@@ -245,6 +245,110 @@
 
 ---
 
+## Entry #6 · 2026-07-04 · v2 大改：品牌 / UI / 开跑闭环
+
+### 用户反馈（v1 复盘）
+
+用户在 v1 上线后拉了三个致命问题：
+
+1. **"太长了，不是移动端"** —— Streamlit 硬拉着做手机 App 会踩一堆坑（顶部 Tab、盒子居中冒充手机、F12 手机视图跑歪）。
+2. **"4 个 Tab 之间没关联"** —— 每个 Tab 是孤岛：Wallet 硬编码 1 万，用户在 Profile 填 5000 也不联动；Feed 说"跟你相关"却没关联组合；点【问 AI】按钮什么都不做。
+3. **"策略只是数字，没跑起来"** —— 用户看不到"跑"的过程，Wallet 是静态摆样子，没有"用户按下开跑 → 系统真的开始跑"这个动作。
+
+创始人红线复述（用户抓得比我准）：
+- 会聊天的 ≠ Agent
+- 只会总结研报的 ≠ Agent
+- 漂亮 Demo ≠ Agent
+- **要闭环**：想法 → 策略 → 执行 → 风控 → 反馈
+
+### 调研结论（研究了 Wealthfront / Betterment / RockFlow / TradingAgents 等）
+
+**关键洞察 1**：真正的策略型 App 都是**两层架构**——
+- LLM 层只做「意图理解 + 结果解释」
+- 策略/回测/执行/风控**全部是 deterministic Python 代码**
+
+LLM 直接算持仓比例、直接下单 = 现场跑测必炸。
+
+**关键洞察 2**：Hackathon 是**周末**，美股 / A 股 / 港股全部闭市。
+如果只做股票 Paper trading，评委来展位时 NAV 曲线是**死的一条线**（tick 冻结）。
+**解法**：股票为主 + 加密仓辅（Binance Testnet 7×24 波动），现场曲线在跳。
+
+**关键洞察 3**：Streamlit 天生做单页数据看板，**不是移动 App 框架**。
+NiceGUI（Quasar 底层）原生支持底部 Tab + 移动端渲染，Python 单文件写。
+
+### v2 决策（用户确认 AAB）
+
+| 项 | v1 | v2 |
+|---|---|---|
+| **品牌** | 长 (Chang) | **阿钱 (A-Qian)** — 拟人朋友感更强 |
+| **UI 框架** | Streamlit（顶部 Tab、桌面味重） | **NiceGUI**（底部 Tab、真移动端） |
+| **执行层** | 无（只有回测） | **自研 Paper Engine（股票）+ Binance Testnet（加密）** |
+| **状态管理** | 各 Tab 各自 session_state（不联动） | **中央 UserState + SQLite 持久化**（关掉重开状态还在） |
+| **AI 回复** | 一段人话 | **四段式**：结论 / 依据 / 画像 / 反问 |
+| **长记忆** | 无 | 本地 JSON 存对话摘要 + 提取的偏好 |
+
+### v2 5 分钟 Demo 剧本
+
+```
+0:00-0:30  冷启动 → 输入"3 万想跑赢通胀"
+0:30-1:30  Agent 出方案卡片（组合 + 风控参数）→ 一键"看回测"
+1:30-2:30  回测跑通 → Sharpe/回撤/NAV 曲线三张图
+2:30-3:30  一键【开跑】→ Paper Engine + Binance Testnet 双引擎启动
+3:30-4:30  现场触发极端场景 (BTC 瞬跌 20%) → 风控拦截 → Agent 反思
+4:30-5:00  复盘卡片："上次错在哪，下轮我准备..."
+```
+
+### 保留 vs 丢弃
+
+**保留（v1 承重墙）**：
+- ✅ `app/backtest.py` — 回测引擎（Option B），已跑通 SPY/GLD/AGG
+- ✅ `app/llm.py` — LLM 抽象层，智谱 GLM-4-Flash 已验证
+- ✅ `.env` / `.gitignore` / 数据缓存
+
+**丢弃（Streamlit 桌面思路）**：
+- ❌ `app/ui.py` (Streamlit 版) — 大部分重写；保留在 git 里作为回滚点
+
+**新建**：
+- ➕ `app/state.py` — 中央 UserState + SQLite 持久化
+- ➕ `app/memory.py` — 长记忆（对话摘要 + 用户偏好提取）
+- ➕ `app/paper.py` — Paper Trading Engine（股票 + 加密）
+- ➕ `app/strategy.py` — 策略 DSL + 内置策略库
+- ➕ `app/main.py` — NiceGUI 主入口（底部 4 Tab）
+- ➕ `app/tabs/` — 每个 Tab 一个模块
+
+### 依赖新增
+
+- `nicegui>=3.14.0` — 移动端 UI 框架
+- `python-binance>=1.0.37` — Binance testnet 加密仓
+
+### 待办 (按顺序做，每完成一个立刻 commit + push)
+
+1. 项目改名"长" → "阿钱"，README 更新
+2. 建 `app/state.py` (UserState + SQLite)
+3. 建 `app/main.py` 骨架 (NiceGUI 底部 4 Tab)
+4. Chat Tab 接入 LLM + 四段式 prompt + memory
+5. Paper Engine + 开跑按钮 + Binance Testnet
+6. Wallet Tab 双态 UI (未开跑 / 运行中)
+7. Feed Tab 组合过滤 + 【问 AI】跳转
+8. Profile Tab 联动共享状态
+9. 5 分钟 Demo 剧本 + 3 个 profile 缓存
+
+---
+
+## Entry #7 · 2026-07-04 · 装依赖 + 停 v1
+
+- **动作**:
+  1. `pkill streamlit` (v1 已在 git, 可回滚)
+  2. `pip install nicegui python-binance`
+- **产出**:
+  - ✅ NiceGUI 3.14.0
+  - ✅ python-binance 1.0.37
+  - ✅ FastAPI 0.139.0 (NiceGUI 内嵌)
+  - ✅ python-socketio 5.16.3 (NiceGUI 用来做实时刷新)
+- **`requirements.txt` 更新**: 新增 nicegui + python-binance, streamlit 保留为 fallback
+
+---
+
 ## Entry #4 · 2026-07-04 · 回测引擎 (Option B)
 
 - **动作**: 创建 `app/backtest.py`
