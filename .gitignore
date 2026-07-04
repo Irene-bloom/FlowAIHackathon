@@ -1,0 +1,58 @@
+# ==============================================
+# FlowAI - .gitignore
+# ==============================================
+
+# ⚠️ Secrets — 永远不推
+.env
+.env.local
+.env.*.local
+*.key
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+env/
+venv/
+.venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data cache (体积大，可再生)
+data/*.csv
+data/*.parquet
+data/*.pkl
+data/*.feather
+!data/.gitkeep
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Logs
+*.log
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
